@@ -1,27 +1,22 @@
-# API Gestao de Frota de Veiculos / Vehicle Fleet Management API
+# API Gestao de Frota de Veiculos
 
-API REST para gestao de frota de veiculos com Java 21, Spring Boot 3 e PostgreSQL.
-Escopo MVP: veiculos, manutencoes e custos, com CRUD completo e relatorio de custos por veiculo e periodo.
+API REST para gestao de frota de veiculos com Java 21, Spring Boot 3 e PostgreSQL. Escopo MVP: veiculos, manutencoes e custos, com CRUD completo e relatorio de custos por veiculo e periodo.
 
-REST API for vehicle fleet management with Java 21, Spring Boot 3 and PostgreSQL.
-MVP scope: vehicles, maintenance and costs, with full CRUD and cost report per vehicle and period.
-
----
-
-## Stack / Stack
+## Stack
 
 - Java 21 (JDK Temurin/Eclipse Adoptium)
 - Spring Boot 3.3.5, Spring Data JPA, Spring Web, Jakarta Validation
-- PostgreSQL (driver `org.postgresql:postgresql`, escopo runtime)
+- PostgreSQL (driver org.postgresql:postgresql, escopo runtime)
 - H2 em memoria para os testes (escopo test — nao precisa de PostgreSQL instalado para testar)
 - JUnit 5, AssertJ, Mockito
 
-## Estrutura do projeto / Project structure
+## Estrutura do projeto
 
 ```
 api-gestao-frota-veiculos/
 ├── pom.xml
 ├── README.md
+├── README.en.md
 ├── BRIEF.md
 ├── LICENSE
 ├── src/main/resources/application.properties   # conexao PostgreSQL
@@ -29,25 +24,25 @@ api-gestao-frota-veiculos/
 └── src/main/java/com/kelvinoliveira/gestaofrota/
     ├── GestaoFrotaApplication.java
     ├── controller/        # Veiculo, Manutencao, Custo, RelatorioCusto
-    ├── dto/               # request/response records (Veiculo, Manutencao, Custo, RelatorioCusto)
+    ├── dto/               # records de request/response
     ├── exception/         # GlobalExceptionHandler + excecoes de negocio
-    ├── model/             # entidades JPA (Veiculo, Manutencao, Custo) e enums
-    ├── repository/        # Spring Data JPA (Veiculo, Manutencao, Custo)
-    └── service/           # casos de uso (Veiculo, Manutencao, Custo, RelatorioCusto)
+    ├── model/             # entidades JPA e enums
+    ├── repository/        # Spring Data JPA
+    └── service/           # casos de uso
 └── src/test/java/com/kelvinoliveira/gestaofrota/
     ├── service/           # 4 testes contra H2 em memoria (@DataJpaTest)
     └── controller/        # 4 testes de camada REST (@WebMvcTest + Mockito)
 ```
 
-## Pré-requisitos / Prerequisites
+## Pré-requisitos
 
 - Java 21 (`java -version` → 21.x)
 - Apache Maven 3.9+ (`mvn -version`)
 - PostgreSQL 14+ apenas para rodar a API com banco real (os testes usam H2 em memoria)
 
-## Como usar / How to use
+## Como usar
 
-### 1. Configure o banco de dados / Configure the database
+### 1. Configure o banco de dados
 
 Crie o banco no PostgreSQL:
 
@@ -55,7 +50,7 @@ Crie o banco no PostgreSQL:
 CREATE DATABASE gestao_frota;
 ```
 
-Ajuste `src/main/resources/application.properties` se o seu usuario/senha diferirem:
+Ajuste `src/main/resources/application.properties` se o usuario/senha diferirem:
 
 ```
 spring.datasource.url=jdbc:postgresql://localhost:5432/gestao_frota
@@ -63,7 +58,7 @@ spring.datasource.username=postgres
 spring.datasource.password=postgres
 ```
 
-### 2. Rode a aplicação / Run the application
+### 2. Rode a aplicação
 
 ```bash
 mvn spring-boot:run
@@ -73,7 +68,7 @@ A API sobe em `http://localhost:8080`. O schema e criado/atualizado automaticame
 
 ## Endpoints
 
-### Veículos / Vehicles
+### Veículos
 
 | Metodo | Caminho | Descricao |
 |--------|---------|-----------|
@@ -83,7 +78,7 @@ A API sobe em `http://localhost:8080`. O schema e criado/atualizado automaticame
 | PUT | `/veiculos/{id}` | Atualiza |
 | DELETE | `/veiculos/{id}` | Remove |
 
-### Manutencoes / Maintenance
+### Manutencoes
 
 | Metodo | Caminho | Descricao |
 |--------|---------|-----------|
@@ -95,7 +90,7 @@ A API sobe em `http://localhost:8080`. O schema e criado/atualizado automaticame
 | PATCH | `/manutencoes/{id}/cancelar` | Cancela |
 | DELETE | `/manutencoes/{id}` | Remove |
 
-### Custos / Costs
+### Custos
 
 | Metodo | Caminho | Descricao |
 |--------|---------|-----------|
@@ -105,15 +100,15 @@ A API sobe em `http://localhost:8080`. O schema e criado/atualizado automaticame
 | POST | `/custos` | Cadastra custo (combustivel, seguro, IPVA, pneu, manutencao, outro) |
 | DELETE | `/custos/{id}` | Remove |
 
-### Relatorio de custos / Cost report
+### Relatorio de custos
 
 | Metodo | Caminho | Descricao |
 |--------|---------|-----------|
 | GET | `/relatorios/custos` | Custos de um veiculo em um periodo, agrupados por tipo |
 
-Parametros: `veiculoId` (Long), `dataInicio` (YYYY-MM-DD), `dataFim` (YYYY-MM-DD).
+Parametros sao `veiculoId` (Long), `dataInicio` (YYYY-MM-DD), `dataFim` (YYYY-MM-DD).
 
-Exemplo de resposta / Example response:
+Exemplo de resposta:
 
 ```json
 {
@@ -131,7 +126,7 @@ Exemplo de resposta / Example response:
 
 Erros retornam corpo padronizado (`timestamp`, `status`, `erro`, `mensagem`, `caminho`) com status HTTP adequado (400 validacao, 404 nao encontrado, 409 placa duplicada).
 
-## Testes / Tests
+## Testes
 
 Os testes rodam em H2 em memoria — nao e necessario instalar ou iniciar o PostgreSQL:
 
@@ -148,13 +143,11 @@ mvn package
 # gera target/api-gestao-frota-veiculos-1.0.0.jar
 ```
 
-## Licenca / License
+## Licenca
 
 Distribuido sob a licenca MIT. Consulte o arquivo LICENSE.
 
-Distributed under the MIT License. See the LICENSE file.
-
-## Autor / Author
+## Autor
 
 Kelvin Oliveira
 
