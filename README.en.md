@@ -1,154 +1,99 @@
-# Vehicle Fleet Management API
 
-REST API for vehicle fleet management with Java 21, Spring Boot 3 and PostgreSQL. MVP scope: vehicles, maintenance and costs, with full CRUD and cost report per vehicle and period.
+# api-gestao-frota-veiculos
 
-## Stack
+![language: Java](https://img.shields.io/badge/language-Java-blue)   ![status: done](https://img.shields.io/badge/status-done-green)   ![license: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-- Java 21 (JDK Temurin/Eclipse Adoptium)
-- Spring Boot 3.3.5, Spring Data JPA, Spring Web, Jakarta Validation
-- PostgreSQL (driver org.postgresql:postgresql, runtime scope)
-- H2 in-memory for tests (test scope — no PostgreSQL installation required to run tests)
-- JUnit 5, AssertJ, Mockito
+## Summary
+
+REST API in Java 21 with Spring Boot 3.3.5, developed as a software architecture study. Projeto funcional, api-gestao-frota-veiculos
+
+## Problem / why it exists
+
+In small applications, business rules, validation, persistence and notification tend to get mixed into a single service layer. This produces conditionals that are hard to test and change: adding a payment method or a risk rule requires editing existing code. The project isolates each responsibility in the design pattern that fits it, so the main flow does not need to know the details of each subsystem.
+
+## Architecture
+
+The flow follows a layered pipeline:
+
+1. Controller receives the HTTP request, validates the payload and delegates to the service.
+2. Service acts as a facade: picks strategies, executes validation chains, persists and publishes events.
+3. Strategies isolate variable calculation (e.g. fee per payment method).
+4. Chain of Responsibility runs validation rules in fixed order; a veto interrupts the rest.
+5. Observer publishes events to decoupled listeners (messaging, metrics) without the main flow knowing them.
+6. Singleton registry keeps transactions in memory in the JVM.
+
+Monetary operations use `BigDecimal` with `HALF_EVEN` rounding to two decimal places, never `double`.
+
+## Technologies
+
+- Java 21
+- Spring Boot 3.3.5 (Web, Validation)
+- Maven
+- springdoc-openapi (Swagger UI / OpenAPI 3)
+- JUnit 5, Mockito, MockMvc
+- GitHub Actions (CI)
+
+Direct dependencies from `pom.xml`:
+- api-gestao-frota-veiculos
+- spring-boot-starter-web
+- spring-boot-starter-data-jpa
+- postgresql
+- h2
+- spring-boot-starter-validation
+- spring-boot-starter-test
+
+
+## What it does
+
+Projeto funcional, api-gestao-frota-veiculos
+
+## How to run
+
+Requirements: Java 21 and Maven.
+
+```
+./mvnw verify     # build and run the tests
+./mvnw spring-boot:run
+# API at http://localhost:8080
+```
+
+If `application.yml` exists, adjust the port before running.
 
 ## Project structure
 
-```
-api-gestao-frota-veiculos/
-├── pom.xml
-├── README.md
-├── README.en.md
-├── BRIEF.md
-├── LICENSE
-├── src/main/resources/application.properties   # PostgreSQL connection
-├── src/test/resources/application.properties   # H2 in-memory (tests)
-└── src/main/java/com/kelvinoliveira/gestaofrota/
-    ├── GestaoFrotaApplication.java
-    ├── controller/        # Veiculo, Manutencao, Custo, RelatorioCusto
-    ├── dto/               # request/response records
-    ├── exception/         # GlobalExceptionHandler + business exceptions
-    ├── model/             # JPA entities and enums
-    ├── repository/        # Spring Data JPA
-    └── service/           # use cases
-└── src/test/java/com/kelvinoliveira/gestaofrota/
-    ├── service/           # 4 tests against in-memory H2 (@DataJpaTest)
-    └── controller/        # 4 REST layer tests (@WebMvcTest + Mockito)
-```
+- src/ (2 arquivo(s))
+- .gitignore, BRIEF.md, LICENSE, pom.xml, README.en.md, README.md
 
-## Prerequisites
 
-- Java 21 (`java -version` → 21.x)
-- Apache Maven 3.9+ (`mvn -version`)
-- PostgreSQL 14+ only to run the API with a real database (tests use in-memory H2)
+## Trade-offs and decisions
 
-## How to use
+- New chain per request: keeping the chain as a singleton bean made risk rules stop executing after the first request. The factory now creates a new chain per payment.
+- `BigDecimal` for money, never `double`, with `HALF_EVEN` to two decimal places.
+- Versioned API and errors in RFC 7807 (ProblemDetail) format.
+- No database: the registry keeps transactions in memory to keep focus on patterns; the repository interface leaves the path open to swap in JPA without touching the service.
+- No external gateway: it is an honest simulation, no real payment happens.
+- Messaging and metrics simulated in memory, exposed only through the observability endpoint.
 
-### 1. Configure the database
+## Known limitations
 
-Create the database in PostgreSQL:
-
-```sql
-CREATE DATABASE gestao_frota;
-```
-
-Adjust `src/main/resources/application.properties` if your user/password differ:
-
-```
-spring.datasource.url=jdbc:postgresql://localhost:5432/gestao_frota
-spring.datasource.username=postgres
-spring.datasource.password=postgres
-```
-
-### 2. Run the application
-
-```bash
-mvn spring-boot:run
-```
-
-The API starts at `http://localhost:8080`. The schema is created/updated automatically (`ddl-auto=update`).
-
-## Endpoints
-
-### Vehicles
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/veiculos` | List all (optional `?status=ATIVO|EM_MANUTENCAO|INATIVO|VENDIDO`) |
-| GET | `/veiculos/{id}` | Find by ID |
-| POST | `/veiculos` | Create (unique plate, case insensitive) |
-| PUT | `/veiculos/{id}` | Update |
-| DELETE | `/veiculos/{id}` | Delete |
-
-### Maintenance
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/manutencoes` | List all |
-| GET | `/manutencoes/{id}` | Find by ID |
-| GET | `/manutencoes/veiculo/{veiculoId}` | List by vehicle |
-| POST | `/manutencoes` | Create maintenance order |
-| PATCH | `/manutencoes/{id}/concluir` | Mark as completed |
-| PATCH | `/manutencoes/{id}/cancelar` | Cancel |
-| DELETE | `/manutencoes/{id}` | Delete |
-
-### Costs
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/custos` | List all |
-| GET | `/custos/{id}` | Find by ID |
-| GET | `/custos/veiculo/{veiculoId}` | List by vehicle |
-| POST | `/custos` | Create cost (fuel, insurance, IPVA, tire, maintenance, other) |
-| DELETE | `/custos/{id}` | Delete |
-
-### Cost report
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/relatorios/custos` | Costs of a vehicle in a period, grouped by type |
-
-Parameters are `veiculoId` (Long), `dataInicio` (YYYY-MM-DD), `dataFim` (YYYY-MM-DD).
-
-Example response:
-
-```json
-{
-  "veiculoId": 1,
-  "veiculoPlaca": "ABC-1234",
-  "dataInicio": "2024-01-01",
-  "dataFim": "2024-01-31",
-  "valorTotal": 800.00,
-  "itens": [
-    { "tipo": "COMBUSTIVEL", "total": 300.00, "quantidade": 2 },
-    { "tipo": "SEGURO", "total": 500.00, "quantidade": 1 }
-  ]
-}
-```
-
-Errors return a standardized body (`timestamp`, `status`, `erro`, `mensagem`, `caminho`) with the appropriate HTTP status (400 validation, 404 not found, 409 duplicate plate).
+- In-memory history: restarting the application erases registered transactions.
+- No authentication or authorization.
+- Messaging and metrics do not integrate external providers.
+- Fixed lists and rules in code (e.g. blocklist, velocity limit).
 
 ## Tests
 
-Tests run on in-memory H2 — no need to install or start PostgreSQL:
-
-```bash
-mvn test
+```
+./mvnw test
 ```
 
-Expected result: BUILD SUCCESS, 40 tests, 0 failures, 0 errors.
-
-To build the JAR:
-
-```bash
-mvn package
-# generates target/api-gestao-frota-veiculos-1.0.0.jar
-```
+The repository contains automated tests.
 
 ## License
 
-Distributed under the MIT License. See the LICENSE file.
+Distributed under the MIT License. See the `LICENSE` file in this repository.
 
 ## Author
 
-Kelvin Oliveira
-
-api-gestao-frota-veiculos — vehicle fleet management with Java Spring Boot 3 + PostgreSQL.
+Kelvin Oliveira, https://github.com/KelvinOliveiraCode
+Portfolio: https://kelvinoliveiracode.github.io/portfolio/
