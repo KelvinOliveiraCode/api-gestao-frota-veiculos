@@ -1,117 +1,114 @@
 # api-gestao-frota-veiculos
 
-<div align="center">
-
 **English** · [Português (Brasil)](README.md)
 
-</div>
-
-[![Java 21](https://img.shields.io/badge/Java-21-%23007396?style=flat-square)](https://adoptium.net/) [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3-%236DB33F?style=flat-square)](https://spring.io/projects/spring-boot) [![Maven](https://img.shields.io/badge/Maven-3.9-C71A36?style=flat-square&logo=apache-maven)](https://maven.apache.org/) [![JUnit 5](https://img.shields.io/badge/JUnit-5-25A162?style=flat-square&logo=junit5)](https://junit.org/junit5/) [![MIT License](https://img.shields.io/badge/License-MIT-f4c430?style=flat-square)](LICENSE)
-
-### Projeto funcional ,  api-gestao-frota-veiculos
-
----
+[![Java 21](https://img.shields.io/badge/Java-21-007396?style=flat-square&logo=openjdk&logoColor=white)](#) [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.3.5-6DB33F?style=flat-square&logo=spring)](#) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-runtime-4169E1?style=flat-square&logo=postgresql)](#) [![H2](https://img.shields.io/badge/H2-tests-0B5FA5?style=flat-square)](#) [![JUnit](https://img.shields.io/badge/JUnit-40%20tests-25A162?style=flat-square&logo=junit5)](#) [![MIT License](https://img.shields.io/badge/License-MIT-f4c430?style=flat-square)](LICENSE)
 
 ## What it is
 
-Projeto funcional ,  api-gestao-frota-veiculos
+REST API for **vehicle fleet management**: vehicle registration, maintenance (open, close, cancel), cost tracking, and a consolidated cost report per vehicle — built on **Java 21 + Spring Boot 3.3.5** with PostgreSQL.
 
----
+## Status
 
-## Quick Start
+Working and tested: **40 tests** passing (`mvn test`, BUILD SUCCESS). Academic/portfolio project; PostgreSQL at runtime, H2 in tests.
 
-```bash
-# Clone and enter
-git clone https://github.com/KelvinOliveiraCode/<repo>.git
-cd <repo>
+## Features
 
-# Build and run tests
-./mvnw verify
+- **Vehicles** (`/veiculos`): list, get by id, create, update (`PUT`) and delete; a duplicate plate is rejected with `PlacaDuplicadaException`.
+- **Maintenance** (`/manutencoes`): list, get by id, list by vehicle (`/veiculo/{veiculoId}`), open, close (`PATCH /{id}/concluir`), cancel (`PATCH /{id}/cancelar`) and delete.
+- **Costs** (`/custos`): list, get by id, list by vehicle (`/veiculo/{veiculoId}`), record and delete.
+- **Cost report** (`/relatorios/custos`): consolidates costs per vehicle (`RelatorioCustoResponse` + `RelatorioCustoItem`).
+- **Global exception handling** (`GlobalExceptionHandler`): standard `ErroResposta` responses; domain exceptions for missing vehicle/maintenance/cost and business-rule violations.
 
-# Run the application
-./mvnw spring-boot:run
-# API available at http://localhost:8080
-# Swagger UI at http://localhost:8080/docs
+## Architecture
+
+Classic layered structure: `controller` → `service` → `repository` → JPA entities, with DTO records separating request/response and enums for status and types.
+
+```mermaid
+flowchart LR
+    C[controller] --> S[service]
+    S --> R[repository]
+    R --> DB[(PostgreSQL / H2 in tests)]
+    S --> D[DTO records]
+    E[exception/GlobalExceptionHandler] --> C
 ```
 
-## How it works
+## Stack
 
-Estrutura limpa e modular com separação de responsabilidades.
+- Java 21 · Spring Boot 3.3.5 (web, data-jpa, validation)
+- PostgreSQL (runtime) · H2 (tests)
+- JUnit 5 / Spring Boot Test
 
----
+## Repository layout
 
-## Capabilities
+```
+api-gestao-frota-veiculos/
+├── pom.xml · BRIEF.md · LICENSE
+├── src/main/java/com/kelvinoliveira/gestaofrota/
+│   ├── controller/      # Veiculo, Manutencao, Custo, RelatorioCusto
+│   ├── service/         # business rules (plate/status validation)
+│   ├── repository/      # JPA repositories
+│   ├── model/           # entities + enums (StatusVeiculo, StatusManutencao, ...)
+│   ├── dto/             # request/response records
+│   ├── exception/       # exceptions + GlobalExceptionHandler
+│   └── GestaoFrotaApplication.java
+├── src/main/resources/application.properties
+├── src/test/java/       # 40 tests (controllers + services)
+└── src/test/resources/
+```
 
-| Capacidade | Descrição |
-|------------|-------------|
-| API REST | Spring Boot 3, endpoints versionados, erros RFC 7807 |
-| Cálculo de Taxa | Strategy pattern ,  PIX R$0,49, Boleto R$2,49, Crédito 3,99%, Débito 1,89% |
-| Validação de Risco | Chain of Responsibility ,  HighValue -> Blocklist -> Velocity |
-| Registro de Transações | Registry Singleton em memória com trilha de auditoria completa |
-| Sistema de Eventos | Observer pattern ,  mensageria e métricas desacopladas |
-| Observabilidade | Endpoint /api/v1/observability expondo efeitos dos listeners |
-| Documentação da API | springdoc-openapi ,  Swagger UI em /docs, OpenAPI 3 em /api-docs |
-| Testes | JUnit 5, Mockito, MockMvc ,  testes de integração + unidade |
+## Prerequisites and installation
 
+Java 21 and Maven. A `gestao_frota` PostgreSQL database (or H2).
 
----
+```bash
+mvn clean install
+```
 
+## How to run
 
+```bash
+mvn spring-boot:run
+# or
+java -jar target/api-gestao-frota-veiculos-1.0.0.jar
+```
 
----
+The API runs on port `8080`. Endpoint examples:
 
-## FAQ
+- `POST /veiculos` — registers a vehicle (duplicate plate → 409)
+- `POST /manutencoes` — opens a maintenance job
+- `PATCH /manutencoes/{id}/concluir` — closes a maintenance job
+- `GET /relatorios/custos?veiculoId={id}` — cost report for a vehicle
 
-<details>
-<summary><strong>What is this project?</strong></summary>
+## Tests and quality
 
-A Java/Spring Boot study/project demonstrating core concepts.
+Real command (verified by the agent):
 
-</details>
+```bash
+mvn test
+# Tests run: 40, Failures: 0, Errors: 0 — BUILD SUCCESS
+```
 
-<details>
-<summary><strong>How do I run it?</strong></summary>
+## Technical decisions and trade-offs
 
-See [Quick Start](#quick-start) for copy-paste commands.
+- **PostgreSQL at runtime, H2 in tests**: fast tests with no server; in exchange, the PostgreSQL driver only matters when the app starts.
+- **DTOs as records**: simple, immutable contracts; in exchange, more classes per domain.
+- **Status enums**: enforce transitions (open/close/cancel) with explicit rules in the service.
+- **Unique plate**: business rule in the service with its own exception, not in the repository.
 
-</details>
+## Known limitations and roadmap
 
-<details>
-<summary><strong>Are there tests?</strong></summary>
+- No authentication/authorization (open API).
+- `ddl-auto=update` with `show-sql=true`: fine for dev, not for production.
+- No pagination on list endpoints.
+- No openapi/swagger.
 
-No automated tests in this repository.
+## Development process
 
-</details>
+An individual project by Kelvin Oliveira, built with orchestrated AI agents and reviewed by the author. The API design and the review are the author's.
 
-<details>
-<summary><strong>Can I use this in production?</strong></summary>
+## License and author
 
-This is a **study/portfolio project**. Review and harden (auth, persistence, monitoring, etc.) before production use.
+MIT — Copyright (c) 2026 Kelvin Rebelo de Oliveira.
 
-</details>
-
-
-
----
-
-## Documentation
-
-- **Source Code** ,  Browse the `src/` directory for implementation details
-- **API Reference** ,  Swagger UI at `/docs` when running
-- **Architecture Diagram** ,  See [architecture.mermaid](docs/architecture.mermaid) (if present)
-- **Changelog** ,  [CHANGELOG.md](CHANGELOG.md) (if present)
-- **Contributing** ,  [CONTRIBUTING.md](CONTRIBUTING.md) (if present)
-
-## License
-
-[MIT](LICENSE) ,  Kelvin Oliveira
-
----
-
-<div align="center">
-
-**Built with** · Java 21 + Spring Boot 3 + Maven
-
-**Author** · [Kelvin Oliveira](https://github.com/KelvinOliveiraCode) · [Portfolio](https://kelvinoliveiracode.github.io/portfolio/)
-
-</div>
+**Author**: [Kelvin Oliveira](https://github.com/KelvinOliveiraCode) · [Portfolio](https://kelvinoliveiracode.github.io/portfolio/)
